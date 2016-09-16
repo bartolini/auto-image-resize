@@ -19,16 +19,26 @@ class ImageObserver(FileSystemEventHandler):
         if event.src_path in self.expected_files:
             self.expected_files.remove(event.src_path)
             return
-        with open(event.src_path, 'rb') as original_image:
-            for size in self.sizes:
-                expected_file = '%s_%s%s' % (filename, size, extension)
-                self.expected_files.add(expected_file)
-                try:
-                    with Image.open(original_image) as image:
-                        cover = resizeimage.resize_cover(image, self.sizes[size])
-                        cover.save(expected_file, image.format)
-                except:
-                    self.expected_files.remove(expected_file)
+        timer = 10
+        while timer:
+            try:
+                original_image = open(event.src_path, 'rb+')
+            except (IOError, OSError):
+                time.sleep(1)
+                timer = timer - 1
+                continue
+            else:
+                with original_image:
+                    for size in self.sizes:
+                        expected_file = '%s_%s%s' % (filename, size, extension)
+                        self.expected_files.add(expected_file)
+                        try:
+                            with Image.open(original_image) as image:
+                                cover = resizeimage.resize_cover(image, self.sizes[size])
+                                cover.save(expected_file, image.format)
+                        except:
+                            self.expected_files.remove(expected_file)
+                    break
 
 def watch_folder(folder, sizes):
     observer = Observer()
